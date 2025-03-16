@@ -55,12 +55,6 @@ literal_tokens = {
     'TILDE': '~',
 }
 
-tokens = [
-    'INTLITERAL', # r'\d+'
-    'STRINGLITERAL', # r'"[^"]*"'
-    'ID' # r'[a-zA-Z_]\w*'
-] + list(literal_tokens.values()) + list(reserved.values())
-
 class DFA:
     class State:
         id_iter = itertools.count()
@@ -75,23 +69,6 @@ class DFA:
         
         def __eq__(self, other):
             return self.id == other.id
-        
-        def print(self):
-            if not self.accepted:
-                print(f'<{self.id}> ->', end='')
-            else:
-                print(f'<{self.id}({self.token})> ->', end='')
-            for key, value in self.transition.items():
-                if key == EPSILON:
-                    print(f'<EPSILON, {value.id}>', end='')
-                else:
-                    print(f'<{key}, {value.id}>', end='')
-            print()
-    
-    def print(self):
-        print("DFA:")
-        for state in self.states:
-            state.print()
 
 class NFA:
     class State:
@@ -109,19 +86,6 @@ class NFA:
         
         def __hash__(self):
             return hash(self.id)
-          
-        def print(self):
-            print(f'<{self.id}> ->', end='')
-            for key, value in self.transition.items():
-                if key == EPSILON:
-                    print(' <EPSILON, <', end='')
-                else:
-                    print(f' <{key}, <', end='')
-                for state in value:
-                    if state:
-                        print(f'{state.id} ', end='')
-                print('>>', end='')
-            print()
             
     @staticmethod
     def from_string(s):
@@ -204,7 +168,6 @@ class NFA:
         start = DFA.State()
         dfa.start = start
         states = [start]
-        dfa.states = states
         nfa_to_dfa = {frozenset(start_closure): start} # Frozen set for hashability
         queue = deque([frozenset(start_closure)]) # queue for processing
         while queue:
@@ -286,12 +249,6 @@ class NFA:
             if c in state.transition:
                 result = result.union(state.transition[c])
         return result
-        
-    
-    def print(self):
-        print("NFA:")
-        for state in self.__iter_states():
-            state.print()
         
         
 class Scanner:
