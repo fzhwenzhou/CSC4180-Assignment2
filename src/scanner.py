@@ -434,7 +434,7 @@ class Scanner:
         self.nfa.set_union(nfa1)
         
     def add_ignore_token(self, token, precedence=0):
-        ignore = ' \n\r\t'
+        ignore = ' \t\r\n'
         nfa = NFA()
         del nfa.start.transition[EPSILON]
         for c in ignore:
