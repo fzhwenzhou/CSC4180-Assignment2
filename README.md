@@ -31,3 +31,5 @@ There is no other method defined in DFA class, nor initializer. There are indeed
 For NFA class, the initializer creates two member variables: start and end, initialized to new NFA states. Then, it will add the parameter `c` to the transition map of the start state, with its value to be end. This creates an initial transition. If no `c` is provided in the parameter, the transition would be `EPSILON` by default.
 
 
+## X. Bonus
+For bonus, I have implemented DFA minimization algorithm (table filling) and applied it in `to_DFA` function to generate a more efficient DFA.

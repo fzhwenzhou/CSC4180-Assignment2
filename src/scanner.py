@@ -70,6 +70,93 @@ class DFA:
         def __eq__(self, other):
             return self.id == other.id
 
+    def minimize(self):
+        # Find all reachable states and alphabet with BFS
+        states = {self.start}
+        queue = deque([self.start])
+        while queue:
+            state = queue.popleft()
+            for value in state.transition.values():
+                if value not in states:
+                    states.add(value)
+                    queue.append(value)
+                    
+        states = sorted(states, key=lambda s: s.id)
+        
+        alphabet = set()
+        for state in states:
+            alphabet.update(state.transition.keys())
+            
+        # Generate combinations
+        pairs = list(itertools.combinations(states, 2))
+        
+        table = set()
+        for p, q in pairs:
+            if p.accepted != q.accepted or p.accepted and q.accepted and p.token != q.token:
+                table.add((p, q))
+                
+        changed = True
+        while changed:
+            changed = False
+            for p, q in pairs:
+                if (p, q) not in table:
+                    for a in alphabet:
+                        p_prime = p.transition.get(a)
+                        q_prime = q.transition.get(a)
+                        if (p_prime is None) != (q_prime is None):
+                            table.add((p, q))
+                            changed = True
+                            break
+                        if p_prime is None and q_prime is None:
+                            continue
+                        if p_prime.id > q_prime.id:
+                            p_prime, q_prime = q_prime, p_prime
+                        if (p_prime, q_prime) in table:
+                            table.add((p, q))
+                            changed = True
+                            break
+        
+        equivalence_classes = []
+        states = set(states)
+        while states:
+            s = states.pop()
+            class_ = {s}
+            for t in states:
+                if s.id < t.id and (s, t) not in table or t.id < s.id and (t, s) not in table:
+                    class_.add(t)
+            states -= class_
+            equivalence_classes.append(frozenset(class_))
+        
+        # Build DFA
+        state_to_class = {}
+        class_to_new_state = {}
+        
+        for class_ in equivalence_classes:
+            for s in class_:
+                state_to_class[s] = class_
+            new_state = DFA.State()
+            elem = list(class_)[0]
+            new_state.accepted = elem.accepted
+            new_state.token = elem.token
+            class_to_new_state[class_] = new_state
+            
+        new_start = class_to_new_state[state_to_class[self.start]]
+
+        for class_ in equivalence_classes:
+            current_new_state = class_to_new_state[class_]
+            elem = list(class_)[0]
+            for a in alphabet:
+                next_original = elem.transition.get(a)
+                if next_original is None:
+                    continue
+                next_group = state_to_class[next_original]
+                next_new_state = class_to_new_state[next_group]
+                current_new_state.transition[a] = next_new_state
+        
+        self.start = new_start
+                
+                    
+
 class NFA:
     class State:
         id_iter = itertools.count()
@@ -197,6 +284,7 @@ class NFA:
                 max_precedence_state = max(accepted_states, key=lambda state: state.precedence)
                 state.token = max_precedence_state.token
         
+        dfa.minimize()
         return dfa
                 
         
@@ -357,12 +445,6 @@ class Scanner:
     
     def NFA_to_DFA(self):
         self.dfa = self.nfa.to_DFA()
-        
-    def print_nfa(self):
-        self.nfa.print()
-        
-    def print_dfa(self):
-        self.dfa.print()
         
 if len(argv) != 2:
     print('Usage: python3 scanner.py <input_file>')
